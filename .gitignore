@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.streamlit/secrets.toml
+.pytest_cache/
+.coverage
+build/
+dist/
+*.log
+out_test.xlsx

@@ -1,0 +1,31 @@
+[project]
+name = "inventory-reconciliation-app"
+version = "0.1.0"
+description = "Streamlit app to reconcile previous vs current inventory against issuances and receivings."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.36",
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+]
+
+[project.scripts]
+inventory-recon = "recon.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

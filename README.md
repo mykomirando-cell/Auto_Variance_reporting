@@ -1,121 +1,56 @@
-# Auto_Variance_reporting
-Project for auto variance detection and reporting
-# Inventory Reconciliation App - Implementation Summary
+# Inventory Reconciliation App
 
-## Overview
-This document summarizes the enhancements made to the Inventory Reconciliation App to improve UOM (Unit of Measurement) exception handling and user experience.
+Streamlit + pandas app that reconciles **Previous Inventory** vs **Current Inventory** for a period, accounting for **Issuances** and **Receivings**. Surfaces variances, UOM mismatches, out-of-period transactions, and data-quality issues.
 
-## Key Improvements Made
+See [`DESIGN.md`](./DESIGN.md) for the full design.
 
-### 1. **Download Template Functionality** (Completed)
-- Added prominent download template section above file uploaders
-- Created templates for all transaction files:
-  - Previous Inventory Template
-  - Current Inventory Template  
-  - Issuance Template
-  - Receiving Template
-  - UOM Conversion Template (Optional)
-- All templates include:
-  - Proper column specifications from DESIGN.md
-  - Sample data illustrating expected format
-  - Excel (.xlsx) format matching app requirements
-  - Helpful tooltips explaining each template's purpose
+## Quick start
 
-### 2. **UOM Conversion Template Enhancement** (Completed per user request)
-- **Added Item Description column** to UOM conversion template for human visual comprehension
-- Updated help text for UOM conversion file uploader to indicate Item Description is included for visual comprehension
-- Modified template generation to include sample Item Description data
+```bash
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+pip install -e ".[dev]"
 
-### 3. **UOM Exception Handling Improvement** (Completed per user request)
-**Problem**: Users were seeing inflated UOM exception counts that included both true exceptions (items needing review) and successfully converted items (informational only).
+streamlit run app.py
+```
 
-**Solution**: Implemented clear separation of UOM metrics:
+### Or just double-click (Windows)
 
-#### Technical Changes Made:
+- **`run.cmd`** — sets up venv on first run, then launches the Streamlit app.
+- **`test.cmd`** — runs the test suite (pytest).
+- **`headless.cmd <workbook.xlsx> [--conversion conv.xlsx] --out result.xlsx`** — CLI runner for batch use.
 
-**Pipeline (`src/recon/pipeline.py`):**
-- Separated true UOM exceptions from converted items in processing logic
-- Added tracking of converted items count (`converted_count = len(converted_rows)`)
-- Added tracking of true UOM exceptions (only items that couldn't be converted)
-- Updated dashboard metrics to include both:
-  - `"uom_exceptions"`: Count of true exceptions requiring user review
-  - `"uom_conversions"`: Count of successfully converted items (informational)
+## Project layout
 
-**Export (`src/recon/export.py`):**
-- Added `"uom_conversions"` to `DASHBOARD_KPI_LABELS` for Excel export
+```
+.
+├── app.py                  ← Streamlit entrypoint
+├── DESIGN.md               ← Design doc
+├── README.md
+├── pyproject.toml
+├── src/recon/
+│   ├── io.py               ← file reading, normalization
+│   ├── validate.py         ← schema + row validation
+│   ├── period.py           ← date filtering
+│   ├── uom.py              ← UOM exception + conversion
+│   ├── reconcile.py        ← core math
+│   ├── export.py           ← Excel writer
+│   └── pipeline.py         ← orchestrator
+├── tests/
+│   ├── test_validate.py
+│   ├── test_reconcile.py
+│   ├── test_uom.py
+│   └── fixtures/sample.xlsx
+└── .streamlit/config.toml
+```
 
-**UI (`app.py`):**
-- **Validation Summary**: Already correctly showed true UOM exceptions in Errors tile
-- **Main Dashboard**:
-  - UOM Exceptions tile: Shows `d.get("uom_exceptions", 0)` (true exceptions only) - red when issues exist
-  - UOM Conversions tile: Shows `d.get("uom_conversions", 0)` (successful conversions) - blue when conversions occurred
-  - Updated layout to accommodate new metric column
-- **Export**: UOM Exceptions sheet contains only true exceptions (not converted items)
+## Input
 
-### 4. **User Experience Benefits**
+A single `.xlsx` workbook with four sheets (one row per SKU per sheet):
 
-**Before Fix:**
-- Confusing combined UOM exception count (e.g., "65 UOM Exceptions" mixing problems + successes)
-- Users couldn't quickly assess what needed attention vs what was processed successfully
-- Required manual inspection of details to distinguish true problems from conversions
+- `Previous Inventory` — SKU Code, Item Description, UOM, Quantity, Inventory Date
+- `Current Inventory`  — same shape
+- `Issuance`           — SKU Code, Item Description, UOM, Quantity, Transaction Date, Document Number
+- `Receiving`          — same shape as Issuance
 
-**After Fix:**
-- Clear separation of concerns:
-  - 🔴 **UOM Exceptions**: `[number]` → Items requiring manual review (true conversion failures)
-  - 🔵 **UOM Conversions**: `[number]` → Items successfully auto-processed via lookup
-  - 🟢 **Green tiles**: Indicate clean status (no action needed)
-  - 🔴 **Red tiles**: Indicate issues requiring attention
-  - 🔵 **Blue tiles**: Show informational metrics (successful processing)
-
-### 5. **File Locations Modified**
-
-1. `app.py` - Main Streamlit application
-   - Added download template section with 5 buttons
-   - Enhanced UOM conversion template with Item Description
-   - Updated help text for UOM conversion file uploader
-   - Improved UOM exception dashboard metrics display
-   - Enhanced validation summary and export functionality
-
-2. `src/recon/pipeline.py` - Core processing logic
-   - Separated true UOM exceptions from converted items
-   - Updated dashboard metrics calculation
-
-3. `src/recon/export.py` - Excel export functionality
-   - Added UOM Conversions metric to dashboard export
-
-### 6. **Template Specifications (Matching DESIGN.md)**
-
-**Inventory Files (Previous/Current):**
-- Columns: SKU Code, Item Description, UOM, Quantity, Inventory Date
-- Sample data showing proper format
-
-**Transaction Files (Issuance/Receiving):**
-- Columns: SKU Code, Item Description, UOM, Quantity, Transaction Date, Document Number
-- Sample data showing proper format
-
-**UOM Conversion File (Optional):**
-- Columns: Item_ID, Item_Description, From_UOM, To_UOM, Conversion_Factor
-- Sample data showing proper format with Item Description for visual comprehension
-
-### 7. **Backward Compatibility**
-- All existing file upload and processing functionality preserved
-- No breaking changes to existing workflows
-- Enhanced features are additive improvements
-
-### 8. **Testing Verification**
-- Template downloads verified to produce correctly formatted Excel files
-- Sample data in templates matches DESIGN.md column specifications
-- Help tooltips provide clear guidance on template usage
-- Existing validation and reconciliation logic maintained
-
-## Future Enhancement Opportunities
-
-1. **Advanced Template Features**: Add data validation, dropdowns, or formatting to templates
-2. **Conversion Rule Validation**: Warn users about potentially problematic conversion rules
-3. **Exception Analytics**: Provide deeper insights into UOM exception patterns
-4. **Batch Template Download**: Option to download all templates as a single ZIP file
-5. **Template Customization**: Allow users to modify templates for their specific needs
-
----
-*Documentation created for future AI agent reference and team knowledge sharing*
-*Last updated: $(date)*
+Optional: a UOM conversion lookup file (SKU Code, From UOM, To UOM, Factor).
